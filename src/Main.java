@@ -1,6 +1,5 @@
 import java.io.File;
 
-
 public class Main {
 
     private static boolean checkFile(String path)
