@@ -1,5 +1,5 @@
 import java.io.File;
- 
+
 public class Main {
 
     private static boolean checkFile(String path)
@@ -29,10 +29,10 @@ public class Main {
                              + "                 from which the pages will be extracted");
             System.out.println("words_file       path to a file that contains the terms separated on each line used for\n"
                              + "                 selecting the pages. The words must contain only english letters.");
-            System.out.println("output_xml       path to the file that will be created and will contain the extracted pages\n"
-                             + "                 in a structure similar to the wikipedia dump xml");
-            System.out.println("output_dir       path to a directory that will be created and will contain each page in a separate\n"
-                             + "                 text file");
+            System.out.println("output_xml       path to a file that will be created and will contain the extracted pages\n"
+                             + "                 in a structure similar to the wikipedia dump xml for training WikipediaESA");
+            System.out.println("output_txt       path to a file that will be created and will contain the extracted pages\n"
+                             + "                 oen on each row for LSA training from 'airhead-research'");
             System.exit(0);
         }
 

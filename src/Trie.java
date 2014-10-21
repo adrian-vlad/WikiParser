@@ -99,4 +99,12 @@ public class Trie {
 
         return false;
     }
+
+    public static boolean isAlphanumeric(int c) {
+        if ((Character.isLetterOrDigit(c) == false) && (c != ' ')) {
+            return false;
+        }
+
+        return true;
+    }
 }

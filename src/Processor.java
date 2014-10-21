@@ -1,17 +1,14 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.text.Normalizer;
-import java.text.Normalizer.Form;
 
 public class Processor {
     private BufferedWriter outXmlFd;
-    private BufferedWriter outFileFd;
+    private BufferedWriter outTxtFd;
     private Parser p;
     private Trie t;
 
@@ -19,10 +16,9 @@ public class Processor {
     private String currentTitle;
     private boolean foundTitle;
     private boolean inText;
-    private String outDir;
     private boolean firstLineOfText;
 
-    public Processor(String inFile, String wordsFile, String outFileXml, String outDir) throws Exception
+    public Processor(String inFile, String wordsFile, String outFileXml, String outFileTxt) throws Exception
     {
         this.p = new Parser(inFile);
         this.t = new Trie();
@@ -31,7 +27,6 @@ public class Processor {
         this.inTitle = false;
         this.foundTitle = false;
         this.inText = false;
-        this.outDir = outDir;
         this.firstLineOfText = true;
 
         if (null != outFileXml && 0 < outFileXml.length())
@@ -39,69 +34,12 @@ public class Processor {
             this.outXmlFd = openFileForWrite(outFileXml);
         }
 
-        if (null != outDir && 0 < outDir.length())
+        if (null != outFileTxt && 0 < outFileTxt.length())
         {
-            if (!makeDir(outDir))
-            {
-                throw new Exception("Error creating directory: " + outDir);
-            }
+            this.outTxtFd = openFileForWrite(outFileTxt);
         }
 
         this.loadTrie(wordsFile);
-    }
-
-    private static boolean makeDir(String dirPath)
-    {
-        boolean ret = true;
-        File directory = new File(dirPath);
-
-        if (directory.exists() && directory.isFile())
-        {
-            System.err.println("The dir with name could not be created as it is a normal file");
-
-            return false;
-        }
-
-        if (!directory.exists())
-        {
-            ret = directory.mkdir();
-        }
-
-        if (ret)
-        {
-//            ret = purgeDirectory(directory);
-        }
-
-        return ret;
-    }
-
-    private static boolean purgeDirectory(File dir)
-    {
-        boolean ret = true;
-
-        for (File file: dir.listFiles())
-        {
-            if (file.isDirectory())
-            {
-                ret = purgeDirectory(file);
-            }
-
-            if (ret)
-            {
-                ret = file.delete();
-                if (!ret)
-                {
-                    System.err.println("Failed to remove file/folder: " + file.getAbsolutePath());
-                }
-            }
-
-            if (!ret)
-            {
-                break;
-            }
-        }
-
-        return ret;
     }
 
     private BufferedWriter openFileForWrite(String path)
@@ -175,13 +113,6 @@ public class Processor {
         return false;
     }
 
-    private static String createFileNameFromTitle(String title)
-    {
-        String normalized = Normalizer.normalize(title, Form.NFD);
-
-        return normalized.replaceAll("[^A-Za-z0-9]", "");
-    }
-
     private void startTag()
     {
         String tag = this.p.getLastTag();
@@ -221,6 +152,7 @@ public class Processor {
             {
                 try {
                     this.outXmlFd.write("\n  </page>");
+                    this.outTxtFd.write("\n");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -241,8 +173,6 @@ public class Processor {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
-                this.outFileFd = openFileForWrite(this.outDir + File.pathSeparator + createFileNameFromTitle(this.currentTitle));
             }
         }
         if (0 == "text".compareTo(tag))
@@ -253,12 +183,6 @@ public class Processor {
             {
                 try {
                     this.outXmlFd.write("\n    </text>");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                try {
-                    this.outFileFd.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -274,9 +198,11 @@ public class Processor {
         }
         if (true == this.foundTitle && true == this.inText)
         {
+            int c = p.getLastChar();
+
             try {
                 /* write the text to the xml file */
-                this.outXmlFd.write(p.getLastChar());
+                this.outXmlFd.write(c);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -285,12 +211,22 @@ public class Processor {
                 /* write the title of the page */
                 if (this.firstLineOfText)
                 {
-                    this.outFileFd.write(createFileNameFromTitle(this.currentTitle));
-                    this.outFileFd.write("\n");
+                    this.outTxtFd.write(this.currentTitle);
+                    this.outTxtFd.write(" ");
                 }
 
                 /* write the text to the individual file */
-                this.outFileFd.write(p.getLastChar());
+                if ('\n' != c && '\r' != c)
+                {
+                    if (Trie.isAlphanumeric(c))
+                    {
+                        this.outTxtFd.write(c);
+                    }
+                    else
+                    {
+                        this.outTxtFd.write(" ");
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -333,8 +269,8 @@ public class Processor {
 
         try {
             this.outXmlFd.write("</mediawiki>");
-
             outXmlFd.close();
+            outTxtFd.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
